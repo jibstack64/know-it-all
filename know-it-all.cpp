@@ -90,6 +90,7 @@ int success(T hooray, int status = 0) {
 const std::string highlight(const std::string value, const std::string term, std::initializer_list<const char *> others) {
     // dont bother if the value is not present
     std::string first;
+    std::string ter;
     std::string after;
     if (value.find(term) == std::string::npos) {
         return pty::paint(value, others);
@@ -102,7 +103,7 @@ const std::string highlight(const std::string value, const std::string term, std
             }
             // term
             else if (i >= place && i < term.size()) {
-                continue;
+                ter += value[i];
             }
             // after
             else {
@@ -111,13 +112,13 @@ const std::string highlight(const std::string value, const std::string term, std
         }
         // paint
         first = pty::paint(first, others);
-        after = pty::paint(after, others);
+        after = highlight(after, term, others);
     }
 
     // form and return
     std::vector<const char *> os = others;
     os.push_back("reversefield"); 
-    return first + pty::paint(term, os) + after;
+    return first + pty::paint(ter, os) + after;
 }
 
 bool help(parameter& parent, const std::string param) {
@@ -505,7 +506,7 @@ bool readable(parameter& parent, const std::string _identifier) {
     nm::json jf = read(parent, path);
     for (const auto& j : jf) {
         if (j["identifier"] == identifier || identifier == "[ALL]") {
-            out += pty::paint("> ", "grey") + pty::paint(identifier, {"yellow", "bold"}) + "\n";
+            out += pty::paint("> ", "grey") + pty::paint(j["identifier"].get<std::string>(), {"yellow", "bold"}) + "\n";
             int i = 0; // tracker
             for (auto& kav : j.items()) {
                 i++;
@@ -545,10 +546,13 @@ bool search(parameter& parent, const std::string term) {
         int p = 0;
         std::string temp = "";
         for (const auto& kav : j.items()) {
-            if ((kav.key().find(term) != std::string::npos || std::string(kav.value()).find(term) != std::string::npos)) {
+            std::ostringstream oss;
+            oss << kav.value();
+            std::string val = oss.str();
+            if ((kav.key().find(term) != std::string::npos || val.find(term) != std::string::npos)) {
                 if (kav.key() != "identifier") {    
                     temp += highlight(kav.key(), term, {"turqoise", "italic"}) + " : ";
-                    temp += highlight(kav.value(), term, {"yellow"}) + "\n";
+                    temp += highlight(val, term, {"yellow"}) + "\n";
                 }
                 p++;
             }
