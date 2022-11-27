@@ -1,5 +1,6 @@
 # know-it-all
 
+![GitHub](https://img.shields.io/github/license/jibstack64/know-it-all)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jibstack64/know-it-all)
 ![GitHub all releases](https://img.shields.io/github/downloads/jibstack64/know-it-all/total)
 
