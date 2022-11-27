@@ -32,8 +32,9 @@ Arguments are parsed in order. Essentially, `o/outfile`, `@/item` and `+/add` ar
 - `-V/verbose` - If passed, warning errors will be shown. Use this if you are unsure to the issue at hand.
   
 #### Examples:
-<img src="https://cdn.discordapp.com/attachments/870419973607129139/1046425653328740413/image.png" alt="Example" width="525"/>
-<img src="https://cdn.discordapp.com/attachments/870419973607129139/1046431951705362513/image.png" alt="Example" width="300"/>
+<img src="https://cdn.discordapp.com/attachments/870419973607129139/1046425653328740413/image.png" alt="Example 1" width="525"/>
+<img src="https://cdn.discordapp.com/attachments/870419973607129139/1046431951705362513/image.png" alt="Example 2" width="240"/>
+<img src="https://cdn.discordapp.com/attachments/870419973607129139/1046437175547412530/image.png" alt="Example 3" width=250>
 
 ### Features to-come
 - [ ] Multi-key, value and type appending (e.g. `-k mykey1,mykey2 -t int,string -v 5,hi`).
