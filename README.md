@@ -40,7 +40,7 @@ Arguments are parsed in order. Essentially, `o/outfile`, `@/item` and `+/add` ar
 - [ ] Multi-key, value and type appending (e.g. `-k mykey1,mykey2 -t int,string -v 5,hi`).
 - [ ] Catalog search (search the web for suitable matches to an item based on its data).
 - [ ] Write to URL/cloud-file (e.g. `-o https://.../db.json`)
-- [ ] Compile Windows executables.
+- [x] Compile Windows executables.
 
 ### Credits (non-std libraries)
 [pretty.hpp](https://github.com/jibstack64/pretty) for colours, [argh.h](https://github.com/adishavit/argh) for argument parsing and [json.hpp](https://github.com/nlohmann/json) for JSON modification.
