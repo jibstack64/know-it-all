@@ -6,6 +6,9 @@
 #include <vector>
 #include <fstream>
 
+#ifdef _WIN32
+#include <iostream> // required for win compilers
+#endif
 #include "include/argh.h"
 #include "include/pretty.hpp"
 #include "include/json.hpp"

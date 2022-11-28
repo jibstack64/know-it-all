@@ -1,0 +1,1 @@
+x86_64-w64-mingw32-g++ -std=c++17 -static know-it-all.cpp -lstdc++fs -o kial.exe
