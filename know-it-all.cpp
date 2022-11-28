@@ -543,33 +543,46 @@ bool search(parameter& parent, const std::string term) {
     // iterate
     std::string out = "";
     for (const auto& j : jf) {
-        int p = 0;
-        std::string temp = "";
-        for (const auto& kav : j.items()) {
-            std::ostringstream oss;
-            oss << kav.value();
-            std::string val = oss.str();
-            if ((kav.key().find(term) != std::string::npos || val.find(term) != std::string::npos)) {
-                if (kav.key() != "identifier") {    
-                    temp += highlight(kav.key(), term, {"turqoise", "italic"}) + " : ";
-                    temp += highlight(val, term, {"yellow"}) + "\n";
+        // loop through items
+        bool saidIdentifier = false;
+        std::string idstr = highlight(j["identifier"], term, {"yellow"});
+        for (auto& it : j.items()) {
+            if (it.key() == "identifier") {
+                continue;
+            } else {
+                // get true value of value to string
+                std::ostringstream oss;
+                oss << it.value();
+                std::string val = oss.str();
+                // if string, remove quotations
+                if (it.value().is_string()) {
+                    val = val.replace(0, 1, "");
+                    val = val.replace(val.size()-1, val.size(), "");
                 }
-                p++;
+                // if exists
+                if (it.key().find(term) != std::string::npos || val.find(term) != std::string::npos) {
+                    if (!saidIdentifier) { // add name to out if not already
+                        out += pty::paint("> ", "grey") + highlight(j["identifier"], term, {"yellow", "bold"}) + "\n";
+                        saidIdentifier = true;
+                    } else {
+                        continue;
+                    }
+                    // feed to out
+                    out += highlight(it.key(), term, {"turqoise", "italic"}) + " : ";
+                    std::string qt = pty::paint("\"", "yellow");
+                    out += qt + highlight(val, term, {"yellow"}) + qt + "\n";
+                }
             }
         }
-        // if something was found
-        if (p != 0) {
-            temp = pty::paint("> ", "grey") + highlight(j["identifier"], term, {"yellow", "bold"}) + "\n" + temp;
-        }
-        out += temp;
     }
 
-    // out to terminal if out was modified
+    // if nothing
     if (out == "") {
         return fatal(parent.prettify() + NO_INSTANCE_ERROR);
-    } else {
-        std::cout << out;
     }
+
+    // feed to console
+    std::cout << out;
 
     return true;
 }
@@ -684,23 +697,6 @@ int main(int argc, char ** argv) {
             continue; // if not passed
         }
         //std::cout << param.prettify() << " <- YES PASSED : " << ((value == ABSENT) ? "N/A" : value) << std::endl;
-
-        // add spaces to value
-        if (value != ABSENT) {
-            // add spaces in new_value
-            std::string fval;
-            bool possible = false;
-            for (int i = 0; i < value.size(); i++) {
-                if (value[i] == ':' && value[i+1] == '/' && value[i+2] == 's') {
-                    fval += " ";
-                    i += 2;
-                    continue;
-                } else {
-                    fval += value[i];
-                }
-            }
-            value = fval;
-        }
 
         // run execute() function
         bool terminating = param.execute(param, value);

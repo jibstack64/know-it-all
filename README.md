@@ -10,7 +10,7 @@
 ## Parameters
 
 ### How parameter values are parsed
-Spaces in the input stream must be replaced with `:/s` to be considered a full string (e.g. `hello:/sworld` would be parsed as `hello world`).
+Wrap multi-word strings with "" to be parsed as multiple words.
 Arguments are parsed in order. Essentially, `o/outfile`, `@/item` and `+/add` are among some arguments that are parsed first. This means that you can do some useful things, such as `-+ myitem -k mykey -t int -v 1234`, but could lead to some issues if you push the boundaries and start using `+/add` alongside `!/erase`. For this reason, I recommend only using `+/add` in this way, otherwise the database may break or lose data.
 
 ### Modification and appendage
