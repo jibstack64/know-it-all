@@ -545,7 +545,12 @@ bool search(parameter& parent, const std::string term) {
     for (const auto& j : jf) {
         // loop through items
         bool saidIdentifier = false;
-        std::string idstr = highlight(j["identifier"], term, {"yellow"});
+        std::string idstr = pty::paint("> ", "grey") + highlight(j["identifier"], term, {"yellow", "bold"}) + "\n";
+        // add identifier beforehand if contains term
+        if (std::string(j["identifier"]).find(term) != std::string::npos) {
+            out += idstr;
+            saidIdentifier = true;
+        }
         for (auto& it : j.items()) {
             if (it.key() == "identifier") {
                 continue;
@@ -562,10 +567,8 @@ bool search(parameter& parent, const std::string term) {
                 // if exists
                 if (it.key().find(term) != std::string::npos || val.find(term) != std::string::npos) {
                     if (!saidIdentifier) { // add name to out if not already
-                        out += pty::paint("> ", "grey") + highlight(j["identifier"], term, {"yellow", "bold"}) + "\n";
+                        out += idstr;
                         saidIdentifier = true;
-                    } else {
-                        continue;
                     }
                     // feed to out
                     out += highlight(it.key(), term, {"turqoise", "italic"}) + " : ";
