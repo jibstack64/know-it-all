@@ -19,7 +19,7 @@ Arguments are parsed in order. Essentially, `o/outfile`, `@/item` and `+/add` ar
 - `-!/erase` - Removes the `@/item` from the database.
 - `-k/key <key>` - Specifies the key to be modified on the `@/item`.
 - `-v/value <new-value>` - The value to be assigned to the `k/key`.
-- `-t/type <type-name>` - Specifies the type of contents that `v/value` holds. Can be 'string', 'int'/'integer', 'float'/'decimal' or 'null'.
+- `-t/type <type-name>` - Specifies the type of contents that `v/value` holds. Can be 'string', 'int'/'integer', 'float'/'decimal', 'bool'/'boolean' or 'null'.
 - `-@/item <name/identifier>` - Specifies the item to be used with the `!/erase`, `k/key` and `r/readable` parameters. If `[ALL]` is provided, then **all** items in the database will be selected.
 - `-p/pop` - Pops `key`, removing it from the `@/item`.
   
@@ -31,6 +31,9 @@ Arguments are parsed in order. Essentially, `o/outfile`, `@/item` and `+/add` ar
 - `-r/readable` - If an `@/item` is specified, the contents of that specific item will be beautified and fed to the console; if not, all items will be displayed in a neat, readable style.
 - `-V/verbose` - If passed, warning errors will be shown. Use this if you are unsure to the issue at hand.
   
+### Builds
+Releases currently ship with **Windows 7+** and **Linux** builds. You may build it yourself, add preprocessor fields for OS-compatibility, and create a PR, if you so wish.
+
 #### Examples:
 <img src="https://cdn.discordapp.com/attachments/870419973607129139/1046425653328740413/image.png" alt="Example 1" width="525"/>
 <img src="https://cdn.discordapp.com/attachments/870419973607129139/1046431951705362513/image.png" alt="Example 2" width="240"/>

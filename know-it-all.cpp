@@ -402,6 +402,9 @@ bool value(parameter& parent, const std::string new_value) {
                     return fatal(parent.prettify() + TYPE_CONVERSION_ERROR);
                 }
                 j[key] = val;
+            } else if (otype == "boolean/bool") {
+                j[key] = fval[0] == 't' ? true : false;
+                fval = j[key] ? "true" : "false";
             } else {
                 // impossible, but you never know
                 return fatal(parent.prettify() + INVALID_TYPE_ERROR);
@@ -477,6 +480,8 @@ bool type(parameter& parent, const std::string object_type) {
         parent.result = "int/integer";
     } else if (object_type == "float" || object_type == "decimal") {
         parent.result = "float/decimal";
+    } else if (object_type == "boolean" || object_type == "bool") {
+        parent.result = "boolean/bool";
     } else if (object_type == "null") {
         parent.result = "null";
     } else {
