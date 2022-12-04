@@ -1,10 +1,12 @@
 // a command line utility for storing, modifying and managing a database of many items and their information.
+// please, ignore the messiness (and laziness) of some of this code, a cleanup is due!
 
 #include <experimental/filesystem>
 #include <functional>
 #include <string>
 #include <vector>
 #include <fstream>
+#include <istream>
 
 #ifdef _WIN32
 #include <iostream> // required for win compilers
@@ -16,8 +18,13 @@
 namespace nm = nlohmann;
 namespace fs = std::experimental::filesystem;
 
+// min lengths
+#define MINPASS 8
 // used to determine whether a parameter's value is empty
 #define ABSENT "  "
+#define DATABASE (std::string)"./database.json"
+#define DECRYPT (std::string)"./decrypted.json"
+#define ENCRYPT (std::string)"./encrypted.json"
 // github url for help
 #define GITHUB "https://github.com/jibstack64/know-it-all"
 // generic error strings
@@ -33,6 +40,10 @@ namespace fs = std::experimental::filesystem;
 #define OUTFILE_NO_EXIST_ERROR ": The outfile provided does not exist, or is prohibited."
 #define NO_INSTANCE_ERROR ": Failed to find any instances of the term provided."
 #define JSON_ERROR ": Error reading JSON from outfile. Check that the JSON format is valid."
+#define DECRYPT_FAIL_ERROR ": Decryption and reading of the JSON failed. Either the phrase is wrong, or the JSON format."
+#define PASSCODE_SERIES_ERROR ": Your passcode cannot be a series of the same character."
+#define PHRASE_TOO_SHORT_ERROR ": Your passphrase must be atleast "+std::to_string(MINPASS).c_str()+" characters long."
+#define PASSCODE_END_SERIES_ERROR ": Your passcode cannot end with a series of characters (it is obsolete)."
 
 // holds a parameter's data and its final value.
 struct parameter {
@@ -122,6 +133,20 @@ const std::string highlight(const std::string value, const std::string term, std
     std::vector<const char *> os = others;
     os.push_back("reversefield"); 
     return first + pty::paint(ter, os) + after;
+}
+
+void setParameterValue(std::initializer_list<const char *> names, const std::string value) {
+    std::vector<const char *> ns = names;
+    for (auto& p : mainParameters) {
+        if (ns[0] == p.names[0]) {
+            p.result = value;
+            return;
+        }
+    }
+}
+
+void setParameterValue(const char * name, const std::string value) {
+    return setParameterValue({name}, value);
 }
 
 bool help(parameter& parent, const std::string param) {
@@ -218,11 +243,11 @@ const std::string getfinal(parameter& parent, const std::string firstName, const
 }
 
 // gets outfile path
-const std::string getout(parameter& parent, bool raises = false) {
+const std::string getout(parameter& parent, bool raises = false, const std::string default_to = DATABASE) {
     std::string out = getfinal(parent, "o", OUTFILE_GET_ERROR, raises);
     if (out == "") {
-        warning(parent.prettify() + ": No outfile provided, defaulting to './database.json'.");
-        out = "./database.json";
+        warning(parent.prettify() + ": No outfile provided, defaulting to '"+ default_to +"'.");
+        out = default_to;
         if (!fs::exists(out)) {
             fatal(parent.prettify() + OUTFILE_NO_EXIST_ERROR);
         } else {
@@ -598,6 +623,131 @@ bool search(parameter& parent, const std::string term) {
     return true;
 }
 
+bool encrypt(parameter& parent, const std::string phrase) {
+    // get outfile for encrypting
+    std::string path = getout(parent);
+
+    // check if all are the same
+    bool same = true;
+    int last = -1;
+    for (int c : phrase) {
+        if (last == -1) {
+            last = c;
+            continue;
+        }
+        if (c != last) {
+            same = false;
+            break;
+        } else {
+            same = true;
+            continue;
+        }
+    }
+    // has to be a proper series - otherwise considered single char
+    if (same) {
+        return fatal(parent.prettify() + PASSCODE_SERIES_ERROR);
+    }
+
+    // check if ends in trailing characters
+    // basically identical to the codeblock above, but backwards
+    same = true;
+    int count = 0;
+    last = -1;
+    for (int i = phrase.size()-1; i > -1; i--) {
+        int c = (int)(phrase[i]);
+        if (last == -1) {
+            last = c;
+        }
+        if (c == last) {
+            same = true;
+            last = c;
+            count++;
+            continue;
+        } else {
+            break;
+        }
+    }
+    if (count > 1) {
+        return fatal(parent.prettify() + PASSCODE_END_SERIES_ERROR);
+    }
+
+    // check if too short
+    if (phrase.size() < MINPASS) {
+        return fatal(parent.prettify() + PHRASE_TOO_SHORT_ERROR);
+    }
+
+    // in and out
+    std::fstream fin(path, std::fstream::in);
+    std::fstream fout(ENCRYPT, std::fstream::out);
+
+    // charshift algorithm
+    char i;
+    while (fin >> std::noskipws >> i) {
+        int temp;
+        for (int x = 0; x < phrase.size(); x++) {
+            temp = i + phrase[x];
+        }
+        fout << (char)temp;
+    }
+
+    // finished
+    fin.close();
+    fout.close();
+
+    // success
+    success("Successfully encrypted '" + path + "'.");
+
+    return true;
+}
+
+bool decrypt(parameter& parent, const std::string phrase) {
+    // get outfile for decrypting
+    std::string path = getout(parent, false, ENCRYPT);
+
+    // in and out
+    std::fstream fin(path, std::fstream::in);
+    std::ostringstream comp;
+
+    // essentially do the opposite of encrypt
+    // shift all bytes left by c as integer for every c in phrase
+    char i;
+    while (fin >> std::noskipws >> i) {
+        int temp;
+        for (int x = 0; x < phrase.size(); x++) {
+            temp = i - phrase[x];
+        }
+        comp << (char)temp;
+    }
+
+    // finished-ish
+    fin.close();
+
+    // now attempt to parse
+    bool valid = true;
+    nm::json jp;
+    try {
+        jp = nm::json::parse(comp.str());
+    } catch (nm::json_abi_v3_11_2::detail::parse_error) {
+        valid = false;
+    }
+    if (jp.is_null() || !valid) {
+        return fatal(parent.prettify() + DECRYPT_FAIL_ERROR);
+    }
+
+    // since all went well, write
+    std::fstream fout(DECRYPT, std::fstream::out);
+    fout << comp.str();
+    fout.close();
+
+    // set outfile to new decrypted
+    setParameterValue("o", DECRYPT);
+
+    // success
+    success("Successfully decrypted '" + path + "'.");
+
+    return false;
+}
+
 int main(int argc, char ** argv) {
     // all parameters
     // organised in such a manner that, during iteration, parameters will work no matter the order
@@ -611,8 +761,16 @@ int main(int argc, char ** argv) {
         "", verbose, false)),
 
         (parameter({"o", "outfile"},
-        "Specifies the target database JSON file. If none is provided, a './database.json' will be assumed.",
+        "Specifies the target database JSON file. If none is provided, a '" + DATABASE + "' will be assumed.",
         "path", outfile, true)),
+
+        (parameter({"d", "decrypt"},
+        "Attempts to decrypt the o/outfile specified with phrase provided - dumps to '" + DECRYPT + "'.",
+        "phrase", decrypt, true)),
+
+        (parameter({"e", "encrypt"},
+        "Encrypts the outfile with the phrase provided - dumps to '" + ENCRYPT + "'.",
+        "phrase", encrypt, true)),
 
         (parameter({"s", "search"}, 
         "Searches through the database for the provided term. Prints matching to the console.",

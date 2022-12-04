@@ -9,9 +9,15 @@
 
 ## Parameters
 
-### How parameter values are parsed
-Wrap multi-word strings with "" to be parsed as multiple words.
-Arguments are parsed in order. Essentially, `o/outfile`, `@/item` and `+/add` are among some arguments that are parsed first. This means that you can do some useful things, such as `-+ myitem -k mykey -t int -v 1234`, but could lead to some issues if you push the boundaries and start using `+/add` alongside `!/erase`. For this reason, I recommend only using `+/add` in this way, otherwise the database may break or lose data.
+### Illustration
+
+`[]` means non-blocking.
+
+`{}` means blocks all parameters after it, as illustrated below.
+
+`kial {-?/help} [-V/verbose] [-o/outfile] [-d/decrypt] {-e/encrypt} {-s/search} [-@/item] [-+/add] {-!/erase} {-r/readable} [-t/type] [-k/key] [-p/pop] [-v/value]`
+> **NOTE** For instance, the `+/add` parameter overwrites the `o/outfile` parameter's value as it is after it. This goes for `d/decrypt` too - if you decrypt a file, the decrypted filepath (`./decrypted.json`) will overwrite the provided `o/outfile`.
+> The order in which you provide these arguments is obsolete; they are parsed in the order above regardless.
 
 ### Modification and appendage
 - `-o/outfile <path>` - Specifies the target database JSON file. If none is provided, a `./database.json` will be assumed.
@@ -25,6 +31,14 @@ Arguments are parsed in order. Essentially, `o/outfile`, `@/item` and `+/add` ar
   
 ### Catalog and iteration
 - `-s/search <term>` - Iterates through all items in the database; if an item's name/identifier or inner value(s) contain `term`, its name/identifier and the value(s) in which `term` was found in are written to the console in a similar style to `r/readable`.
+  
+### Encryption and decryption
+> **NOTE**
+> The encryption algorithm is a very basic two-dimensional bitshift algorithm. It works, but make sure that your password is long, or your data may be at risk from bruteforce attacks. **Your phrase cannot be a series of characters!** Otherwise your passcode is encrypted (and decrypted) as being the single character that is repeated, reducing the entire point of the encrypt/decrypt functions!
+>
+> This is *in progress* and is prone to change soon.
+- `-e/encrypt <phrase>` - Encrypts the `o/outfile` provided to `./encrypted.json`.
+- `-d/decrypt <phrase>` - Decrypts the `o/outfile` provided to `./decrypted.json`. If no `o/outfile` is provided, an `./encrypted.json` will be used (if found).
 
 ### Other
 - `-?/help [parameter]` - Provides a help-sheet for all parameters, (almost) identical to that of this README. If `parameter` is passed, only help for that single parameter will be written to the console.
@@ -40,9 +54,11 @@ Releases currently ship with **Windows 7+** and **Linux** builds. You may build 
 <img src="https://cdn.discordapp.com/attachments/870419973607129139/1046437175547412530/image.png" alt="Example 3" width=250>
 
 ### Features to-come
+- [x] Encryption and decryption.
 - [ ] Multi-key, value and type appending (e.g. `-k mykey1,mykey2 -t int,string -v 5,hi`).
-- [ ] Catalog search (search the web for suitable matches to an item based on its data).
-- [ ] Write to URL/cloud-file (e.g. `-o https://.../db.json`)
+- [ ] ~~Catalog search (search the web for suitable matches to an item based on its data).~~ Scrapped - not needed.
+- [ ] Write/read from URL/cloud-file (e.g. `-o https://.../db.json`)
+- [ ] Write/read from SSH (scp).
 - [x] Compile Windows executables.
 
 ### Credits (non-std libraries)
