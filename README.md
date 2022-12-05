@@ -36,6 +36,8 @@
 > **NOTE**
 > The encryption algorithm is a very basic two-dimensional bitshift algorithm. It works, but make sure that your password is long, or your data may be at risk from bruteforce attacks. **Your phrase cannot be a series of characters!** Otherwise your passcode is encrypted (and decrypted) as being the single character that is repeated, reducing the entire point of the encrypt/decrypt functions!
 >
+> If you have a repeating sequence in your phrase, for example, `testtest`, `test` will work for decrypting as well as `testtest` due to the way the algorithm works. For this reason, I suggest avoiding repeating words in your phrase.
+>
 > This is *in progress* and is prone to change soon.
 - `-e/encrypt <phrase>` - Encrypts the `o/outfile` provided to `./encrypted.json`.
 - `-d/decrypt <phrase>` - Decrypts the `o/outfile` provided to `./decrypted.json`. If no `o/outfile` is provided, an `./encrypted.json` will be used (if found).
