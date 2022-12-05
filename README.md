@@ -15,7 +15,7 @@
 
 `{}` means blocks all parameters after it, as illustrated below.
 
-`kial {-?/help} [-V/verbose] [-o/outfile] [-d/decrypt] {-e/encrypt} {-s/search} [-@/item] [-+/add] {-!/erase} {-r/readable} [-t/type] [-k/key] [-p/pop] [-v/value]`
+`kial [V/verbose] [c/colourless] {?/help} [o/outfile] [d/decrypt] {e/encrypt} {s/search} [@/item] [+/add] {!/erase} {r/readable} [t/type] [k/key] [p/pop] [v/value]`
 > **NOTE** For instance, the `+/add` parameter overwrites the `o/outfile` parameter's value as it is after it. This goes for `d/decrypt` too - if you decrypt a file, the decrypted filepath (`./decrypted.json`) will overwrite the provided `o/outfile`.
 > The order in which you provide these arguments is obsolete; they are parsed in the order above regardless.
 
