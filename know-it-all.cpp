@@ -50,11 +50,12 @@ struct parameter {
     std::vector<std::string> names;
     std::string passed;
     std::string description;
+    bool blockingFunc;
     bool passedRequired;
 
     std::string result;
 
-    std::function<bool(parameter&, const std::string)> execute;
+    std::function<void(parameter&, const std::string)> execute;
 
     // forms a string containing all names seperated by a slash or 'sep'.
     const std::string prettify(const std::string sep = "/") {
@@ -66,48 +67,68 @@ struct parameter {
     }
 
     parameter(const std::initializer_list<std::string> names, const std::string description, 
-            const std::string passed, std::function<bool(parameter&, const std::string)> execute, bool passedRequired = true)
-            : names(names), description(description), passed(passed), passedRequired(passedRequired), execute(execute) {}
+            const std::string passed, std::function<void(parameter&, const std::string)> execute, bool passedRequired = true,
+            bool blockingFunc = false) : names(names), description(description), passed(passed), passedRequired(passedRequired),
+            blockingFunc(blockingFunc), execute(execute) {}
 };
 
 std::vector<parameter> mainParameters;
 
+/*///////////////////////////////*
+//  PARAMETER VALUE MODIF/READ  //
+*///////////////////////////////*/
 
-/*////////////*
-//  LOGGING  //
-*////////////*/
-
-// returns a fatal error and exits.
-template<typename T>
-int fatal(T sad, int status = 1) {
-    std::cout << pty::paint(sad, "lightred") << " [" << pty::paint(status, {"red", "dim"}) << "]" << std::endl;
-    exit(status);
-    return status;
+void setParameterValue(std::initializer_list<const char *> names, const std::string value) {
+    std::vector<const char *> ns = names;
+    for (auto& p : mainParameters) {
+        if (ns[0] == p.names[0]) {
+            p.result = value;
+            return;
+        }
+    }
 }
 
-// middlepoint of fatal and success.
-template<typename T>
-int warning(T headscratch, float status = 0.5) {
-    for (const auto& p : mainParameters) {
-        if (p.names[0] == "V") {
-            if (p.passed == "verbose") {
-                std::cout << pty::paint(headscratch, "yellow") << " [" << pty::paint(status, {"yellow", "dim"}) << "]" << std::endl;
+void setParameterValue(const char * name, const std::string value) {
+    return setParameterValue({name}, value);
+}
+
+parameter* getParameter(const char * name) {
+    for (auto& p : mainParameters) {
+        for (auto& n : p.names) {
+            if (n == name) {
+                return &p;
             }
         }
     }
-    return status;
-}
-
-// the opposite of fatal.
-template<typename T>
-int success(T hooray, int status = 0) {
-    std::cout << pty::paint(hooray, "lightgreen") << " [" << pty::paint(status, "green") << "]" << std::endl;
-    return status;
+    return nullptr; 
 }
 
 /*//////////////*
 //  COLOURING  //
 *//////////////*/
+
+// a proxy for the paint function, used for c/colourless parameter.
+template<typename T>
+const std::string paint(T value, std::vector<const char *> cns) {
+    parameter* call = getParameter("c");
+    if (call->result != "") {
+        std::ostringstream oss;
+        oss << value;
+        return oss.str();
+    } else {
+        return pty::paint(value, cns);
+    }
+}
+
+template<typename T>
+const std::string paint(T value, std::initializer_list<const char *> cns) {
+    return paint(value, std::vector(cns));
+}
+
+template<typename T>
+const std::string paint(T value, const char * cn) {
+    return paint(value, {cn});
+}
 
 // highlights 'term' in 'value' and returns the result. paints non-highlighted with 'others'.
 const std::string highlight(const std::string value, const std::string term, std::initializer_list<const char *> others) {
@@ -116,7 +137,7 @@ const std::string highlight(const std::string value, const std::string term, std
     std::string ter;
     std::string after;
     if (value.find(term) == std::string::npos) {
-        return pty::paint(value, others);
+        return paint(value, others);
     } else {
         int place = value.find(term);
         for (int i = 0; i < value.size(); i++) {
@@ -134,33 +155,49 @@ const std::string highlight(const std::string value, const std::string term, std
             }
         }
         // paint
-        first = pty::paint(first, others);
+        first = paint(first, others);
         after = highlight(after, term, others);
     }
 
     // form and return
     std::vector<const char *> os = others;
     os.push_back("reversefield"); 
-    return first + pty::paint(ter, os) + after;
+    return first + paint(ter, os) + after;
 }
 
-/*//////////////////////////*
-//  PARAMETER VALUE MODIF  //
-*//////////////////////////*/
+/*////////////*
+//  LOGGING  //
+*////////////*/
 
-void setParameterValue(std::initializer_list<const char *> names, const std::string value) {
-    std::vector<const char *> ns = names;
-    for (auto& p : mainParameters) {
-        if (ns[0] == p.names[0]) {
-            p.result = value;
-            return;
+// returns a fatal error and exits.
+template<typename T>
+int fatal(T sad, int status = 1) {
+    std::cout << paint(sad, "lightred") << " [" << paint(status, {"red", "dim"}) << "]" << std::endl;
+    exit(status);
+    return status;
+}
+
+// middlepoint of fatal and success.
+template<typename T>
+int warning(T headscratch, float status = 0.5) {
+    for (const auto& p : mainParameters) {
+        if (p.names[0] == "V") {
+            if (p.passed == "verbose") {
+                std::cout << paint(headscratch, "yellow") << " [" << paint(status, {"yellow", "dim"}) << "]" << std::endl;
+            }
         }
     }
+    return status;
 }
 
-void setParameterValue(const char * name, const std::string value) {
-    return setParameterValue({name}, value);
+// the opposite of fatal.
+template<typename T>
+int success(T hooray, int status = 0) {
+    std::cout << paint(hooray, "lightgreen") << " [" << paint(status, "green") << "]" << std::endl;
+    return status;
 }
+
+
 
 /*///////////////*
 //  READ/WRITE  //
@@ -262,10 +299,14 @@ const std::string getType(parameter& parent) {
 //  PARAM CORE FUNCS  //
 *///////////////////////
 
-bool help(parameter& parent, const std::string param) {
+void help(parameter& parent, const std::string param) {
     std::string toc = "";
+    std::string order = paint("kial ", "magenta");
 
     for (auto& p : mainParameters) {
+        // add to ordered text at end
+        const char * eas = (p.blockingFunc ? "{}" : "[]");
+        order += paint(eas[0], "grey") + paint(p.prettify(), "yellow") + paint(eas[1], "grey") + " ";
         // if param is provided
         bool in;
         for (const auto& n : p.names) {
@@ -279,42 +320,39 @@ bool help(parameter& parent, const std::string param) {
         // add to toc
         if (param == ABSENT || in) {
             // name
-            toc += "# " + pty::paint(p.prettify(), {"magenta", "underlined"}) + " ";
+            toc += "# " + paint("-" + p.prettify(), {"magenta", "underlined"}) + " ";
             // takes
             if (p.passed != "") {
-                toc += pty::paint(p.passedRequired ? "<" : "[", "grey") + pty::paint(p.passed, "yellow") +
-                        pty::paint(p.passedRequired ? ">" : "]", "grey");
+                toc += paint(p.passedRequired ? "<" : "[", "grey") + paint(p.passed, "yellow") +
+                        paint(p.passedRequired ? ">" : "]", "grey");
             }
             // desc
-            toc += "\n" + pty::paint(p.description, {"grey", "italic"}) + "\n\n";
+            toc += "\n" + paint(p.description, {"grey", "italic"}) + "\n\n";
         }
     }
 
     // if the param does not exist
     if (toc == "" && param != ABSENT) {
-        return fatal(parent.prettify() + ": Parameter '" + param + "' does not exist.");
+        fatal(parent.prettify() + ": Parameter '" + param + "' does not exist.");
     }
 
     // add github for extra help
-    toc = pty::paint("Need extra help?\n" + (std::string)GITHUB + "\n\n", {"turqoise", "underlined"}) + toc;
+    toc = paint("Need extra help?\n" + (std::string)GITHUB + "\n\n", {"turqoise", "underlined"}) + toc;
     
     // feed to console
-    std::cout << toc;
-
-    return true;
+    std::cout << toc << paint("Parsing order:", {"bold"}) << std::endl << order << std::endl;
 }
 
-bool outfile(parameter& parent, const std::string path) {
+void outfile(parameter& parent, const std::string path) {
     // check if path exists
     if (!fs::exists(path)) {
-        return fatal(parent.prettify() + OUTFILE_NO_EXIST_ERROR);
+        fatal(parent.prettify() + OUTFILE_NO_EXIST_ERROR);
     }
 
     parent.result = path;
-    return false;
 }
 
-bool add(parameter& parent, const std::string identifier) {
+void add(parameter& parent, const std::string identifier) {
     // get path
     std::string path = getOut(parent);
 
@@ -324,7 +362,7 @@ bool add(parameter& parent, const std::string identifier) {
     // check if item with matching identifier is already in the database
     for (const auto& j : jf) {
         if (j["identifier"] == identifier) {
-            return fatal(parent.prettify() + ": An item with the identifier '" + identifier + "' is already present within the database.");
+            fatal(parent.prettify() + ": An item with the identifier '" + identifier + "' is already present within the database.");
         }
     }
 
@@ -346,11 +384,9 @@ bool add(parameter& parent, const std::string identifier) {
 
     // success message
     success("Item of identifier '" + identifier + "' has been added to the database.");
-
-    return false;
 }
 
-bool erase(parameter& parent, const std::string _) {
+void erase(parameter& parent, const std::string _) {
     // get outpath and item
     std::string path = getOut(parent);
     std::string identifier = getItem(parent);
@@ -360,7 +396,7 @@ bool erase(parameter& parent, const std::string _) {
 
     // if no items to remove
     if (jf.empty()) {
-        return fatal(parent.prettify() + NO_ITEMS_TO_REMOVE_ERROR);
+        fatal(parent.prettify() + NO_ITEMS_TO_REMOVE_ERROR);
     }
 
     // iterate until found
@@ -381,12 +417,10 @@ bool erase(parameter& parent, const std::string _) {
     success("Removed item(s) '" + identifier + "'.");
 
     // write new json
-    write(parent, path, jf);
-
-    return true;
+    write(parent, path, jf);    
 }
 
-bool item(parameter& parent, const std::string identifier) {
+void item(parameter& parent, const std::string identifier) {
     // all?
     if (identifier != "[ALL]") {
         // read json
@@ -402,20 +436,18 @@ bool item(parameter& parent, const std::string identifier) {
 
         // if not found, ararrghH!!!!
         if (!found) {
-            return fatal(parent.prettify() + ITEM_EXISTS_ERROR);
+            fatal(parent.prettify() + ITEM_EXISTS_ERROR);
         }
     }
 
     parent.result = identifier;
-    return false;
 }
 
-bool key(parameter& parent, const std::string key_name) {
+void key(parameter& parent, const std::string key_name) {
     parent.result = key_name;
-    return false;
 }
 
-bool value(parameter& parent, const std::string new_value) {
+void value(parameter& parent, const std::string new_value) {
     // get the path and identifier
     std::string key = getKey(parent);
     std::string otype = getType(parent);
@@ -441,7 +473,7 @@ bool value(parameter& parent, const std::string new_value) {
                 try {
                     val = std::stoi(fval);
                 } catch (std::exception) {
-                    return fatal(parent.prettify() + TYPE_CONVERSION_ERROR);
+                    fatal(parent.prettify() + TYPE_CONVERSION_ERROR);
                 }
                 j[key] = val;
             } else if (otype == "float/decimal") {
@@ -449,7 +481,7 @@ bool value(parameter& parent, const std::string new_value) {
                 try {
                     val = std::stod(fval);
                 } catch (std::exception) {
-                    return fatal(parent.prettify() + TYPE_CONVERSION_ERROR);
+                    fatal(parent.prettify() + TYPE_CONVERSION_ERROR);
                 }
                 j[key] = val;
             } else if (otype == "boolean/bool") {
@@ -457,7 +489,7 @@ bool value(parameter& parent, const std::string new_value) {
                 fval = j[key] ? "true" : "false";
             } else {
                 // impossible, but you never know
-                return fatal(parent.prettify() + INVALID_TYPE_ERROR);
+                fatal(parent.prettify() + INVALID_TYPE_ERROR);
             }
             if (!said) {
                 success("Value of key '" + key + "' has been assigned the value '" + fval + "' (of type '" + otype + "') for item(s) '" + identifier + "'.");
@@ -471,11 +503,9 @@ bool value(parameter& parent, const std::string new_value) {
 
     // write to json
     write(parent, path, jf);
-
-    return false;
 }
 
-bool pop(parameter& parent, const std::string _) {
+void pop(parameter& parent, const std::string _) {
     // get stuffs
     std::string path = getOut(parent);
     std::string key = getKey(parent);
@@ -483,7 +513,7 @@ bool pop(parameter& parent, const std::string _) {
 
     // this causes... a lot of issues
     if (key == "identifier") { 
-        return fatal(parent.prettify() + CANNOT_POP_KEY_IDENTIFIER_ERROR);
+        fatal(parent.prettify() + CANNOT_POP_KEY_IDENTIFIER_ERROR);
     }
 
     // read json
@@ -510,7 +540,7 @@ bool pop(parameter& parent, const std::string _) {
 
     // if nothing changed
     if (!changed) {
-        return fatal(parent.prettify() + KEY_NOT_PRESENT_ERROR);
+        fatal(parent.prettify() + KEY_NOT_PRESENT_ERROR);
     }
 
     // write json
@@ -518,11 +548,9 @@ bool pop(parameter& parent, const std::string _) {
 
     // success
     success("Key '" + key + "' removed from item(s) '" + identifier + "'.");
-
-    return false;
 }
 
-bool type(parameter& parent, const std::string object_type) {
+void type(parameter& parent, const std::string object_type) {
     // might as well get it over with
     if (object_type == "string" || object_type == ABSENT) {
         parent.result = "string";
@@ -535,13 +563,11 @@ bool type(parameter& parent, const std::string object_type) {
     } else if (object_type == "null") {
         parent.result = "null";
     } else {
-        return fatal(parent.prettify() + INVALID_TYPE_ERROR);
+        fatal(parent.prettify() + INVALID_TYPE_ERROR);
     }
-
-    return false;
 }
 
-bool readable(parameter& parent, const std::string _identifier) {
+void readable(parameter& parent, const std::string _identifier) {
     // fetch items and all
     std::string path = getOut(parent);
     std::string identifier;
@@ -564,34 +590,31 @@ bool readable(parameter& parent, const std::string _identifier) {
     nm::json jf = read(parent, path);
     for (const auto& j : jf) {
         if (j["identifier"] == identifier || identifier == "[ALL]") {
-            out += pty::paint("> ", "grey") + pty::paint(j["identifier"].get<std::string>(), {"yellow", "bold"}) + "\n";
+            out += paint("> ", "grey") + paint(j["identifier"].get<std::string>(), {"yellow", "bold"}) + "\n";
             int i = 0; // tracker
             for (auto& kav : j.items()) {
                 i++;
                 if (kav.key() == "identifier") {
                     continue;
                 }
-                out += pty::paint(kav.key(), {"turqoise", "italic"}) + " : ";
-                out += pty::paint(kav.value(), "yellow") + "\n";
+                out += paint(kav.key(), {"turqoise", "italic"}) + " : ";
+                out += paint(kav.value(), "yellow") + "\n";
             }
             if (i < 2) {
-                out += pty::paint("N/A", "grey") + "\n";
+                out += paint("N/A", "grey") + "\n";
             }
         }
     }
 
     // out to console
     std::cout << out;
-
-    return true;
 }
 
-bool verbose(parameter& parent, const std::string _) {
+void verbose(parameter& parent, const std::string _) {
     parent.passed = "verbose";
-    return false;
 }
 
-bool search(parameter& parent, const std::string term) {
+void search(parameter& parent, const std::string term) {
     // get values
     std::string path = getOut(parent);
 
@@ -603,7 +626,7 @@ bool search(parameter& parent, const std::string term) {
     for (const auto& j : jf) {
         // loop through items
         bool saidIdentifier = false;
-        std::string idstr = pty::paint("> ", "grey") + highlight(j["identifier"], term, {"yellow", "bold"}) + "\n";
+        std::string idstr = paint("> ", "grey") + highlight(j["identifier"], term, {"yellow", "bold"}) + "\n";
         // add identifier beforehand if contains term
         if (std::string(j["identifier"]).find(term) != std::string::npos) {
             out += idstr;
@@ -630,7 +653,7 @@ bool search(parameter& parent, const std::string term) {
                     }
                     // feed to out
                     out += highlight(it.key(), term, {"turqoise", "italic"}) + " : ";
-                    std::string qt = pty::paint("\"", "yellow");
+                    std::string qt = paint("\"", "yellow");
                     out += qt + highlight(val, term, {"yellow"}) + qt + "\n";
                 }
             }
@@ -639,16 +662,14 @@ bool search(parameter& parent, const std::string term) {
 
     // if nothing
     if (out == "") {
-        return fatal(parent.prettify() + NO_INSTANCE_ERROR);
+        fatal(parent.prettify() + NO_INSTANCE_ERROR);
     }
 
     // feed to console
     std::cout << out;
-
-    return true;
 }
 
-bool encrypt(parameter& parent, const std::string phrase) {
+void encrypt(parameter& parent, const std::string phrase) {
     // get outfile for encrypting
     std::string path = getOut(parent);
 
@@ -670,7 +691,7 @@ bool encrypt(parameter& parent, const std::string phrase) {
     }
     // has to be a proper series - otherwise considered single char
     if (same) {
-        return fatal(parent.prettify() + PASSCODE_SERIES_ERROR);
+        fatal(parent.prettify() + PASSCODE_SERIES_ERROR);
     }
 
     // check if ends in trailing characters
@@ -693,12 +714,12 @@ bool encrypt(parameter& parent, const std::string phrase) {
         }
     }
     if (count > 1) {
-        return fatal(parent.prettify() + PASSCODE_END_SERIES_ERROR);
+        fatal(parent.prettify() + PASSCODE_END_SERIES_ERROR);
     }
 
     // check if too short
     if (phrase.size() < MINPASS) {
-        return fatal(parent.prettify() + PHRASE_TOO_SHORT_ERROR);
+        fatal(parent.prettify() + PHRASE_TOO_SHORT_ERROR);
     }
 
     // in and out
@@ -721,11 +742,9 @@ bool encrypt(parameter& parent, const std::string phrase) {
 
     // success
     success("Successfully encrypted '" + path + "'.");
-
-    return true;
 }
 
-bool decrypt(parameter& parent, const std::string phrase) {
+void decrypt(parameter& parent, const std::string phrase) {
     // get outfile for decrypting
     std::string path = getOut(parent, false, ENCRYPT);
 
@@ -756,7 +775,7 @@ bool decrypt(parameter& parent, const std::string phrase) {
         valid = false;
     }
     if (jp.is_null() || !valid) {
-        return fatal(parent.prettify() + DECRYPT_FAIL_ERROR);
+        fatal(parent.prettify() + DECRYPT_FAIL_ERROR);
     }
 
     // since all went well, write
@@ -768,9 +787,12 @@ bool decrypt(parameter& parent, const std::string phrase) {
     setParameterValue("o", DECRYPT);
 
     // success
-    success("Successfully decrypted '" + path + "'.");
+    success("Successfully decrypted '" + path + "'.");    
+}
 
-    return false;
+void colourless(parameter& parent, const std::string _) {
+    warning("Disabled colours.");
+    parent.result = "passed";
 }
 
 /*/////////*
@@ -781,61 +803,66 @@ int main(int argc, char ** argv) {
     // all parameters
     // organised in such a manner that, during iteration, parameters will work no matter the order
     mainParameters = {
-        (parameter({"?", "help"},
-        "Provides help for all/a parameter(s).",
-        "parameter", help, false)),
 
         (parameter({"V", "verbose"},
         "Enables warning errors.",
-        "", verbose, false)),
+        "", verbose, false, false)),
+
+        (parameter({"c", "colourless"},
+        "Disables colours.",
+        "", colourless, false, false)),
+
+        (parameter({"?", "help"},
+        "Provides help for all/a parameter(s).",
+        "parameter", help, false, true)),
 
         (parameter({"o", "outfile"},
         "Specifies the target database JSON file. If none is provided, a '" + DATABASE + "' will be assumed.",
-        "path", outfile, true)),
+        "path", outfile, true, false)),
 
         (parameter({"d", "decrypt"},
         "Attempts to decrypt the o/outfile specified with phrase provided - dumps to '" + DECRYPT + "'.",
-        "phrase", decrypt, true)),
+        "phrase", decrypt, true, false)),
 
         (parameter({"e", "encrypt"},
         "Encrypts the outfile with the phrase provided - dumps to '" + ENCRYPT + "'.",
-        "phrase", encrypt, true)),
+        "phrase", encrypt, true, true)),
 
         (parameter({"s", "search"}, 
         "Searches through the database for the provided term. Prints matching to the console.",
-        "term", search, true)),
+        "term", search, true, true)),
 
         (parameter({"@", "item"},
         "Specifies the item to be used with the !/erase, k/key and r/readable parameters.",
-        "name/identifier", item, true)),
+        "name/identifier", item, true, false)),
         
         (parameter({"+", "add"},
         "Adds an item to the database by its name/identifier.",
-        "name/identifier", add, true)),
+        "name/identifier", add, true, false)),
         
         (parameter({"!", "erase"},
         "Removes the specified item.",
-        "", erase, false)),
+        "", erase, false, true)),
 
         (parameter({"r", "readable"},
         "Reads the entirety of a item's contents in a readable format. If no item is specified with @/item, all items in the database will be displayed neatly.",
-        "", readable, false)),
+        "", readable, false, true)),
 
         (parameter({"t", "type"},
         "Specifies the type of contents that v/value holds. Can be 'string', 'int'/'integer', 'float'/'decimal' or 'null'.",
-        "type-name", type, true)),
+        "type-name", type, true, false)),
 
         (parameter({"k", "key"},
         "Specifies the key to be modified on the item.",
-        "key", key, true)),
+        "key", key, true, false)),
 
         (parameter({"p", "pop"},
         "Pops key, removing it from the item specified.",
-        "", pop, false)),
+        "", pop, false, false)),
 
         (parameter({"v", "value"},
-        "The value to be assigned to the k/key. Spaces in the input stream must be replaced with :/s.",
-        "new-value", value, true)),
+        "The value to be assigned to the k/key.",
+        "new-value", value, true, false)),
 
     };
 
@@ -897,9 +924,8 @@ int main(int argc, char ** argv) {
         //std::cout << param.prettify() << " <- YES PASSED : " << ((value == ABSENT) ? "N/A" : value) << std::endl;
 
         // run execute() function
-        bool terminating = param.execute(param, value);
-        received = true;
-        if (terminating) {
+        param.execute(param, value);
+        if (param.blockingFunc) {
             return 0;
         }
     }

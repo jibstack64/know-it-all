@@ -46,6 +46,7 @@
 - `-?/help [parameter]` - Provides a help-sheet for all parameters, (almost) identical to that of this README. If `parameter` is passed, only help for that single parameter will be written to the console.
 - `-r/readable` - If an `@/item` is specified, the contents of that specific item will be beautified and fed to the console; if not, all items will be displayed in a neat, readable style.
 - `-V/verbose` - If passed, warning errors will be shown. Use this if you are unsure to the issue at hand.
+- `-c/colourless` - Disables colours.
   
 ### Builds
 Releases currently ship with **Windows 7+** and **Linux** builds. You may build it yourself, add preprocessor fields for OS-compatibility, and create a PR, if you so wish.
@@ -58,7 +59,7 @@ Releases currently ship with **Windows 7+** and **Linux** builds. You may build 
 ### Features to-come
 - [x] Encryption and decryption.
 - [x] Clean up codebase 1/2.
-- [ ] Clean up codebase 2/2.
+- [x] Clean up codebase 2/2.
 - [ ] Multi-key, value and type appending (e.g. `-k mykey1,mykey2 -t int,string -v 5,hi`).
 - [ ] ~~Catalog search (search the web for suitable matches to an item based on its data).~~ Scrapped - not needed.
 - [ ] Write/read from URL/cloud-file (e.g. `-o https://.../db.json`)
