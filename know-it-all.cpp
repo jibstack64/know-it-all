@@ -925,6 +925,7 @@ int main(int argc, char ** argv) {
 
         // run execute() function
         param.execute(param, value);
+        received = true;
         if (param.blockingFunc) {
             return 0;
         }
