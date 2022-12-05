@@ -72,6 +72,11 @@ struct parameter {
 
 std::vector<parameter> mainParameters;
 
+
+/*////////////*
+//  LOGGING  //
+*////////////*/
+
 // returns a fatal error and exits.
 template<typename T>
 int fatal(T sad, int status = 1) {
@@ -99,6 +104,10 @@ int success(T hooray, int status = 0) {
     std::cout << pty::paint(hooray, "lightgreen") << " [" << pty::paint(status, "green") << "]" << std::endl;
     return status;
 }
+
+/*//////////////*
+//  COLOURING  //
+*//////////////*/
 
 // highlights 'term' in 'value' and returns the result. paints non-highlighted with 'others'.
 const std::string highlight(const std::string value, const std::string term, std::initializer_list<const char *> others) {
@@ -135,6 +144,10 @@ const std::string highlight(const std::string value, const std::string term, std
     return first + pty::paint(ter, os) + after;
 }
 
+/*//////////////////////////*
+//  PARAMETER VALUE MODIF  //
+*//////////////////////////*/
+
 void setParameterValue(std::initializer_list<const char *> names, const std::string value) {
     std::vector<const char *> ns = names;
     for (auto& p : mainParameters) {
@@ -148,6 +161,106 @@ void setParameterValue(std::initializer_list<const char *> names, const std::str
 void setParameterValue(const char * name, const std::string value) {
     return setParameterValue({name}, value);
 }
+
+/*///////////////*
+//  READ/WRITE  //
+*///////////////*/
+
+// used for reading json in conjunction with parameters.
+nm::json read(parameter& parent, const std::string path) {
+    // read json data
+    std::ifstream file(path);
+    nm::json jf;
+    try {
+        jf = nm::json::parse(file);
+    } catch (nm::json::exception) { // catch json errors
+        return fatal(parent.prettify() + JSON_ERROR);
+    }
+    file.close(); // safe and snuggly!
+    
+    // make sure is array
+    if (!jf.is_array()) {
+        return fatal(parent.prettify() + JSON_ERROR);
+    }
+
+    return jf;
+}
+
+// used for writing json in conjunction with parameters.
+void write(parameter& parent, const std::string path, nm::json& value) {
+    // write to file
+    std::ofstream out(path);
+    out << std::setw(4) << value << std::endl;
+    out.close();
+}
+
+/*////////////////////////*
+//  PARAM VALUE GETTERS  //
+*////////////////////////*/
+
+// iterates all parameters until the one with a name of 'firstName' is found, then returns that parameters final value.
+// writes 'error' string to the console if the final value is not present.
+const std::string getFinal(parameter& parent, const std::string firstName, const std::string error, bool raises = true) {
+    std::string result;
+    for (const auto& p : mainParameters) {
+        if (p.names[0] == firstName) {
+            if (p.result == "") {
+                if (raises) {
+                    fatal(parent.prettify() + error);
+                } else {
+                    continue;
+                }
+            } else {
+                result = p.result;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+// gets outfile path
+const std::string getOut(parameter& parent, bool raises = false, const std::string default_to = DATABASE) {
+    std::string out = getFinal(parent, "o", OUTFILE_GET_ERROR, raises);
+    if (out == "") {
+        warning(parent.prettify() + ": No outfile provided, defaulting to '"+ default_to +"'.");
+        out = default_to;
+        if (!fs::exists(out)) {
+            fatal(parent.prettify() + OUTFILE_NO_EXIST_ERROR);
+        } else {
+            // set as outfile final
+            for (auto& p : mainParameters) {
+                if (p.names[0] == "o") {
+                    p.result = out;
+                }
+            }
+        }
+    }
+    return out;
+}
+
+// gets item identifier
+const std::string getItem(parameter& parent, bool raises = true) {
+    return getFinal(parent, "@", ITEM_GET_ERROR, raises);
+}
+
+// gets key for modification
+const std::string getKey(parameter& parent, bool raises = true) {
+    return getFinal(parent, "k", NO_KEY_ERROR, raises);
+}
+
+// gets type for modification
+const std::string getType(parameter& parent) {
+    std::string fin = getFinal(parent, "t", "", false);
+    if (fin == "") {
+        fin = "string";
+    }
+    return fin;
+}
+
+/*//////////////////////
+//  PARAM CORE FUNCS  //
+*///////////////////////
 
 bool help(parameter& parent, const std::string param) {
     std::string toc = "";
@@ -201,97 +314,9 @@ bool outfile(parameter& parent, const std::string path) {
     return false;
 }
 
-// used for reading json in conjunction with parameters.
-nm::json read(parameter& parent, const std::string path) {
-    // read json data
-    std::ifstream file(path);
-    nm::json jf;
-    try {
-        jf = nm::json::parse(file);
-    } catch (nm::json::exception) { // catch json errors
-        return fatal(parent.prettify() + JSON_ERROR);
-    }
-    file.close(); // safe and snuggly!
-    
-    // make sure is array
-    if (!jf.is_array()) {
-        return fatal(parent.prettify() + JSON_ERROR);
-    }
-
-    return jf;
-}
-
-// iterates all parameters until the one with a name of 'firstName' is found, then returns that parameters final value.
-// writes 'error' string to the console if the final value is not present.
-const std::string getfinal(parameter& parent, const std::string firstName, const std::string error, bool raises = true) {
-    std::string result;
-    for (const auto& p : mainParameters) {
-        if (p.names[0] == firstName) {
-            if (p.result == "") {
-                if (raises) {
-                    fatal(parent.prettify() + error);
-                } else {
-                    continue;
-                }
-            } else {
-                result = p.result;
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-// gets outfile path
-const std::string getout(parameter& parent, bool raises = false, const std::string default_to = DATABASE) {
-    std::string out = getfinal(parent, "o", OUTFILE_GET_ERROR, raises);
-    if (out == "") {
-        warning(parent.prettify() + ": No outfile provided, defaulting to '"+ default_to +"'.");
-        out = default_to;
-        if (!fs::exists(out)) {
-            fatal(parent.prettify() + OUTFILE_NO_EXIST_ERROR);
-        } else {
-            // set as outfile final
-            for (auto& p : mainParameters) {
-                if (p.names[0] == "o") {
-                    p.result = out;
-                }
-            }
-        }
-    }
-    return out;
-}
-
-// gets item identifier
-const std::string getitem(parameter& parent, bool raises = true) {
-    return getfinal(parent, "@", ITEM_GET_ERROR, raises);
-}
-
-// gets key for modification
-const std::string getkey(parameter& parent, bool raises = true) {
-    return getfinal(parent, "k", NO_KEY_ERROR, raises);
-}
-
-// gets type for modification
-const std::string gettype(parameter& parent) {
-    std::string fin = getfinal(parent, "t", "", false);
-    if (fin == "") {
-        fin = "string";
-    }
-    return fin;
-}
-
-// used for writing json in conjunction with parameters.
-void write(parameter& parent, const std::string path, nm::json& value) {
-    // write to file
-    std::ofstream out(path);
-    out << std::setw(4) << value << std::endl;
-    out.close();
-}
-
 bool add(parameter& parent, const std::string identifier) {
     // get path
-    std::string path = getout(parent);
+    std::string path = getOut(parent);
 
     // read json data
     nm::json jf = read(parent, path);
@@ -327,8 +352,8 @@ bool add(parameter& parent, const std::string identifier) {
 
 bool erase(parameter& parent, const std::string _) {
     // get outpath and item
-    std::string path = getout(parent);
-    std::string identifier = getitem(parent);
+    std::string path = getOut(parent);
+    std::string identifier = getItem(parent);
 
     // read json
     nm::json jf = read(parent, path);
@@ -365,7 +390,7 @@ bool item(parameter& parent, const std::string identifier) {
     // all?
     if (identifier != "[ALL]") {
         // read json
-        nm::json jf = read(parent, getout(parent));
+        nm::json jf = read(parent, getOut(parent));
 
         // ensure that the item exists
         bool found = false;
@@ -392,10 +417,10 @@ bool key(parameter& parent, const std::string key_name) {
 
 bool value(parameter& parent, const std::string new_value) {
     // get the path and identifier
-    std::string key = getkey(parent);
-    std::string otype = gettype(parent);
-    std::string path = getout(parent);
-    std::string identifier = getitem(parent);
+    std::string key = getKey(parent);
+    std::string otype = getType(parent);
+    std::string path = getOut(parent);
+    std::string identifier = getItem(parent);
 
     std::string fval = new_value; // eek!
 
@@ -452,9 +477,9 @@ bool value(parameter& parent, const std::string new_value) {
 
 bool pop(parameter& parent, const std::string _) {
     // get stuffs
-    std::string path = getout(parent);
-    std::string key = getkey(parent);
-    std::string identifier = getitem(parent);
+    std::string path = getOut(parent);
+    std::string key = getKey(parent);
+    std::string identifier = getItem(parent);
 
     // this causes... a lot of issues
     if (key == "identifier") { 
@@ -518,12 +543,12 @@ bool type(parameter& parent, const std::string object_type) {
 
 bool readable(parameter& parent, const std::string _identifier) {
     // fetch items and all
-    std::string path = getout(parent);
+    std::string path = getOut(parent);
     std::string identifier;
     if (_identifier != ABSENT) {
         identifier = _identifier;
     } else {
-        identifier = getitem(parent, false);
+        identifier = getItem(parent, false);
     }
 
     // if no identifier
@@ -568,7 +593,7 @@ bool verbose(parameter& parent, const std::string _) {
 
 bool search(parameter& parent, const std::string term) {
     // get values
-    std::string path = getout(parent);
+    std::string path = getOut(parent);
 
     // read json
     nm::json jf = read(parent, path);
@@ -625,7 +650,7 @@ bool search(parameter& parent, const std::string term) {
 
 bool encrypt(parameter& parent, const std::string phrase) {
     // get outfile for encrypting
-    std::string path = getout(parent);
+    std::string path = getOut(parent);
 
     // check if all are the same
     bool same = true;
@@ -702,7 +727,7 @@ bool encrypt(parameter& parent, const std::string phrase) {
 
 bool decrypt(parameter& parent, const std::string phrase) {
     // get outfile for decrypting
-    std::string path = getout(parent, false, ENCRYPT);
+    std::string path = getOut(parent, false, ENCRYPT);
 
     // in and out
     std::fstream fin(path, std::fstream::in);
@@ -747,6 +772,10 @@ bool decrypt(parameter& parent, const std::string phrase) {
 
     return false;
 }
+
+/*/////////*
+//  MAIN  //
+*/////////*/
 
 int main(int argc, char ** argv) {
     // all parameters

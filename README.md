@@ -57,6 +57,8 @@ Releases currently ship with **Windows 7+** and **Linux** builds. You may build 
 
 ### Features to-come
 - [x] Encryption and decryption.
+- [x] Clean up codebase 1/2.
+- [ ] Clean up codebase 2/2.
 - [ ] Multi-key, value and type appending (e.g. `-k mykey1,mykey2 -t int,string -v 5,hi`).
 - [ ] ~~Catalog search (search the web for suitable matches to an item based on its data).~~ Scrapped - not needed.
 - [ ] Write/read from URL/cloud-file (e.g. `-o https://.../db.json`)
