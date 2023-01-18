@@ -4,7 +4,9 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jibstack64/know-it-all)
 ![GitHub all releases](https://img.shields.io/github/downloads/jibstack64/know-it-all/total)
 
-*A command line utility for indexing, modifying and managing a database of many items.*
+## I will no longer be working on this project *as it is*. In the future, I will rewrite it and make the codebase cleaner and easier to append to.
+
+*A command-line utility for indexing, modifying and managing a database of many items.*
 > <img src="https://pyxis.nymag.com/v1/imgs/a33/a1b/ff252c077aab7eaa9980c702142ae3abff-wojak-00.2x.w710.jpg" alt="Big brain wojak" width="250"/>
 
 ## Parameters
