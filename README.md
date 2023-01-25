@@ -4,8 +4,6 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jibstack64/know-it-all)
 ![GitHub all releases](https://img.shields.io/github/downloads/jibstack64/know-it-all/total)
 
-## I will no longer be working on this project *as it is*. In the future, I will rewrite it and make the codebase cleaner and easier to append to.
-
 *A command-line utility for indexing, modifying and managing a database of many items.*
 > <img src="https://pyxis.nymag.com/v1/imgs/a33/a1b/ff252c077aab7eaa9980c702142ae3abff-wojak-00.2x.w710.jpg" alt="Big brain wojak" width="250"/>
 
@@ -15,7 +13,7 @@
 
 `[]` means non-blocking.
 
-`{}` means blocks all parameters after it, as illustrated below.
+`{}` means the parameter blocks all parameters after it, as presented below.
 
 `kial [V/verbose] [c/colourless] {?/help} [o/outfile] [d/decrypt] {e/encrypt} {s/search} [@/item] [+/add] {!/erase} {r/readable} [t/type] [k/key] [p/pop] [v/value]`
 > **NOTE** For instance, the `+/add` parameter overwrites the `o/outfile` parameter's value as it is after it. This goes for `d/decrypt` too - if you decrypt a file, the decrypted filepath (`./decrypted.json`) will overwrite the provided `o/outfile`.
