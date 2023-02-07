@@ -53,7 +53,7 @@ Releases currently ship with **Windows 7+** and **Linux** builds. You may build 
 
 #### Examples:
 <img src="https://cdn.discordapp.com/attachments/870419973607129139/1046425653328740413/image.png" alt="Example 1" width="525"/>
-<img src="https://cdn.discordapp.com/attachmenhttps://open.spotify.com/playlist/0WGZsRaO1aQOOEsZoFjvvN?si=bd1f982745d042bfts/870419973607129139/1046431951705362513/image.png" alt="Example 2" width="240"/>
+<img src="https://cdn.discordapp.com/attachments/870419973607129139/1046431951705362513/image.png" alt="Example 2" width="240"/>
 <img src="https://cdn.discordapp.com/attachments/870419973607129139/1046437175547412530/image.png" alt="Example 3" width=250>
 
 ### Features to-come
