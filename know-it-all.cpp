@@ -197,8 +197,6 @@ int success(T hooray, int status = 0) {
     return status;
 }
 
-
-
 /*///////////////*
 //  READ/WRITE  //
 *///////////////*/
@@ -320,14 +318,14 @@ void help(parameter& parent, const std::string param) {
         // add to toc
         if (param == ABSENT || in) {
             // name
-            toc += "# " + paint("-" + p.prettify(), {"magenta", "underlined"}) + " ";
+            toc += "⮑ " + paint("-" + p.prettify(), "magenta") + " ";
             // takes
             if (p.passed != "") {
                 toc += paint(p.passedRequired ? "<" : "[", "grey") + paint(p.passed, "yellow") +
                         paint(p.passedRequired ? ">" : "]", "grey");
             }
             // desc
-            toc += "\n" + paint(p.description, {"grey", "italic"}) + "\n\n";
+            toc += "\n  " + paint(p.description, {"grey", "italic"}) + "\n";
         }
     }
 
@@ -336,11 +334,16 @@ void help(parameter& parent, const std::string param) {
         fatal(parent.prettify() + ": Parameter '" + param + "' does not exist.");
     }
 
-    // add github for extra help
-    toc = paint("Need extra help?\n" + (std::string)GITHUB + "\n\n", {"turqoise", "underlined"}) + toc;
-    
-    // feed to console
-    std::cout << toc << paint("Parsing order:", {"bold"}) << std::endl << order << std::endl;
+    if (param == ABSENT) {
+        // add github for extra help
+        toc = paint("Need extra help?\n", "turqoise") + paint((std::string)GITHUB + "\n\n", {"turqoise", "underlined"}) + toc;
+        toc += paint("\nParsing order:", {"bold"}) + "\n" + order;
+    } else {
+        toc = "\n" + toc;
+    }
+
+    // feed to console :D
+    std::cout << toc << std::endl;
 }
 
 void outfile(parameter& parent, const std::string path) {
@@ -584,7 +587,6 @@ void readable(parameter& parent, const std::string _identifier) {
         }
     }
 
-    read:
     // read all of contents
     std::string out; // string to be pushed to console
     nm::json jf = read(parent, path);
@@ -878,8 +880,7 @@ int main(int argc, char ** argv) {
     parser.parse(argc, argv);
 
     // loop through args and assign end values
-    std::vector<std::string> ignored; // contains ignored params
-    bool received = false;
+    int i = 0;
     for (auto& param : mainParameters) {
         // if the parameter has been passed
         std::string value = ABSENT;
@@ -890,6 +891,7 @@ int main(int argc, char ** argv) {
             for (const auto& name : param.names) {
                 if (arg.first == name) {
                     value = arg.second;
+                    i += 1;
                     break;
                 }
             }
@@ -923,16 +925,17 @@ int main(int argc, char ** argv) {
         }
         //std::cout << param.prettify() << " <- YES PASSED : " << ((value == ABSENT) ? "N/A" : value) << std::endl;
 
-        // run execute() function
+        // add to passed
         param.execute(param, value);
-        received = true;
         if (param.blockingFunc) {
             return 0;
+        } else {
+            continue;
         }
     }
 
     // if no parameters provided, return error
-    if (!received) {
+    if (i == 0) {
         return fatal("No parameters provided.");
     }
 }
