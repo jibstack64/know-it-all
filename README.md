@@ -13,6 +13,9 @@
 
 `[]` means non-blocking. `{}` means the parameter blocks all parameters after it, as presented below.
 
+![image](https://user-images.githubusercontent.com/107510599/217616054-fa123dc6-4314-4300-ba72-67064663b4b7.png)
+
+
 > #### **NOTE**
 > For instance, the `+/add` parameter overwrites the `o/outfile` parameter's value as it is after it. This goes for `d/decrypt` too - if you decrypt a file, the decrypted filepath (`./decrypted.json`) will overwrite the provided `o/outfile`.
 >
