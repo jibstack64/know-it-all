@@ -31,19 +31,21 @@ namespace fs = std::experimental::filesystem;
 #define OUTFILE_GET_ERROR ": No outfile provided. Run with '-? o' for more information."
 #define ITEM_GET_ERROR ": No item identifier provided. Run with '-? @' for more information."
 #define ITEM_EXISTS_ERROR ": The item identifier provided does not exist in the database."
-#define NO_KEY_ERROR ": No key provided."
+#define NO_KEY_ERROR ": No key(s) provided."
 #define INVALID_TYPE_ERROR ": Invalid type. Run with '-? t' for more information."
-#define CANNOT_POP_KEY_IDENTIFIER_ERROR ": Cannot pop key - it is the name/identifier."
+#define CANNOT_POP_KEY_IDENTIFIER_ERROR ": Popping the 'identifier' key is prohibited.."
 #define TYPE_CONVERSION_ERROR ": Error whilst converting provided value to type."
 #define NO_ITEMS_TO_REMOVE_ERROR ": No items to remove."
-#define KEY_NOT_PRESENT_ERROR ": Could not pop key; it could not be found in the item(s)."
+#define KEY_NOT_PRESENT_ERROR ": Could not pop key(s); they could not be found in the item(s)."
 #define OUTFILE_NO_EXIST_ERROR ": The outfile provided does not exist, or is prohibited."
 #define NO_INSTANCE_ERROR ": Failed to find any instances of the term provided."
 #define JSON_ERROR ": Error reading JSON from outfile. Check that the JSON format is valid."
 #define DECRYPT_FAIL_ERROR ": Decryption and reading of the JSON failed. Either the phrase is wrong, or the JSON format."
-#define PASSCODE_SERIES_ERROR ": Your passcode cannot be a series of the same character."
+#define PASSCODE_SERIES_ERROR ": Your passphrase cannot be a series of the same character."
 #define PHRASE_TOO_SHORT_ERROR ": Your passphrase must be atleast "+std::to_string(MINPASS).c_str()+" characters long."
 #define PASSCODE_END_SERIES_ERROR ": Your passcode cannot end with a series of characters (it is obsolete)."
+#define KEY_VAL_MATCH_ERROR ": Not enough keys for the values provided, or vice versa."
+#define TOO_MANY_OTYPES_ERROR ": Too many types provided for the number of values."
 
 // holds a parameter's data and its final value.
 struct parameter {
@@ -111,7 +113,7 @@ parameter* getParameter(const char * name) {
 template<typename T>
 const std::string paint(T value, std::vector<const char *> cns) {
     parameter* call = getParameter("c");
-    if (call->result != "") {
+    if (call->result == "colourless") {
         std::ostringstream oss;
         oss << value;
         return oss.str();
@@ -173,19 +175,17 @@ const std::string highlight(const std::string value, const std::string term, std
 template<typename T>
 int fatal(T sad, int status = 1) {
     std::cout << paint(sad, "lightred") << " [" << paint(status, {"red", "dim"}) << "]" << std::endl;
-    exit(status);
+    if (getParameter("F")->passed != "force") {
+        exit(status);
+    }
     return status;
 }
 
 // middlepoint of fatal and success.
 template<typename T>
-int warning(T headscratch, float status = 0.5) {
-    for (const auto& p : mainParameters) {
-        if (p.names[0] == "V") {
-            if (p.passed == "verbose") {
-                std::cout << paint(headscratch, "yellow") << " [" << paint(status, {"yellow", "dim"}) << "]" << std::endl;
-            }
-        }
+float warning(T headscratch, float status = 0.5) {
+    if (getParameter("F")->passed == "verbose") {
+        std::cout << paint(headscratch, "yellow") << " [" << paint(status, {"yellow", "dim"}) << "]" << std::endl;
     }
     return status;
 }
@@ -280,17 +280,36 @@ const std::string getItem(parameter& parent, bool raises = true) {
 }
 
 // gets key for modification
-const std::string getKey(parameter& parent, bool raises = true) {
-    return getFinal(parent, "k", NO_KEY_ERROR, raises);
+const std::vector<std::string> getKeys(parameter& parent, bool raises = true) {
+    std::stringstream raw = std::stringstream(getFinal(parent, "k", NO_KEY_ERROR, raises));
+    std::vector<std::string> keys;
+    std::string segment;
+    while(std::getline(raw, segment, ',')) {
+        keys.push_back(segment);
+    }
+    return keys;
+}
+
+// gets vals for modification
+const std::vector<std::string> getVals(const std::string _raw) {
+    std::stringstream raw = std::stringstream(_raw);
+    std::vector<std::string> vals;
+    std::string segment;
+    while(std::getline(raw, segment, ',')) {
+        vals.push_back(segment);
+    }
+    return vals;
 }
 
 // gets type for modification
-const std::string getType(parameter& parent) {
-    std::string fin = getFinal(parent, "t", "", false);
-    if (fin == "") {
-        fin = "string";
+const std::vector<std::string> getTypes(parameter& parent) {
+    std::stringstream raw = std::stringstream(getFinal(parent, "t", "", false));
+    std::vector<std::string> types;
+    std::string segment;
+    while(std::getline(raw, segment, ',')) {
+        types.push_back(segment);
     }
-    return fin;
+    return types;
 }
 
 /*//////////////////////
@@ -354,7 +373,7 @@ void outfile(parameter& parent, const std::string path) {
 
     parent.result = path;
 }
-
+        
 void add(parameter& parent, const std::string identifier) {
     // get path
     std::string path = getOut(parent);
@@ -451,54 +470,72 @@ void key(parameter& parent, const std::string key_name) {
 }
 
 void value(parameter& parent, const std::string new_value) {
-    // get the path and identifier
-    std::string key = getKey(parent);
-    std::string otype = getType(parent);
+    std::vector<std::string> keys = getKeys(parent);
+    std::vector<std::string> fvals = getVals(new_value);
+    std::vector<std::string> otypes = getTypes(parent);
+    // check for inconsistency
+    if (keys.size() != fvals.size()) {
+        fatal(parent.prettify() + KEY_VAL_MATCH_ERROR);
+    }
+    // check for overflow in otypes
+    if (otypes.size() > fvals.size()) {
+        fatal(parent.prettify() + TOO_MANY_OTYPES_ERROR);
+    }
+    // fill otypes
+    for (int i = 0; i < fvals.size()-otypes.size(); i++) {
+        otypes.push_back("string");
+    }
+
     std::string path = getOut(parent);
     std::string identifier = getItem(parent);
-
-    std::string fval = new_value; // eek!
 
     // read the json
     nm::json jf = read(parent, path);
 
     // find the element and replace the key
-    bool said = false;
     for (auto& j : jf) {
         if (j["identifier"] == identifier || identifier == "[ALL]") {
-            // attempt at conversion
-            if (otype == "null") {
-                j[key] = {};
-            } else if (otype == "string") {
-                j[key] = fval;
-            } else if (otype == "int/integer") {
-                int val;
-                try {
-                    val = std::stoi(fval);
-                } catch (std::exception) {
-                    fatal(parent.prettify() + TYPE_CONVERSION_ERROR);
+            bool out = false; // break out
+            for (int k = 0; k < keys.size(); k++) {
+                std::string key = keys[k];
+                std::string fval = fvals[k];
+                std::string otype = otypes[k];
+                
+                // attempt at conversion
+                if (otype == "null") {
+                    j[key] = {};
+                } else if (otype == "string") {
+                    j[key] = fval;
+                } else if (otype == "int" || otype == "integer") {
+                    int val;
+                    try {
+                        val = std::stoi(fval);
+                    } catch (std::exception) {
+                        fatal(parent.prettify() + TYPE_CONVERSION_ERROR);
+                    }
+                    j[key] = val;
+                } else if (otype == "float" || otype == "decimal") {
+                    double val;
+                    try {
+                        val = std::stod(fval);
+                    } catch (std::exception) {
+                        fatal(parent.prettify() + TYPE_CONVERSION_ERROR);
+                    }
+                    j[key] = val;
+                } else if (otype == "boolean" || otype == "bool") {
+                    j[key] = fval[0] == 't' ? true : false;
+                    fval = j[key] ? "true" : "false";
+                } else {
+                    // impossible, but you never know
+                    fatal(parent.prettify() + INVALID_TYPE_ERROR);
                 }
-                j[key] = val;
-            } else if (otype == "float/decimal") {
-                double val;
-                try {
-                    val = std::stod(fval);
-                } catch (std::exception) {
-                    fatal(parent.prettify() + TYPE_CONVERSION_ERROR);
-                }
-                j[key] = val;
-            } else if (otype == "boolean/bool") {
-                j[key] = fval[0] == 't' ? true : false;
-                fval = j[key] ? "true" : "false";
-            } else {
-                // impossible, but you never know
-                fatal(parent.prettify() + INVALID_TYPE_ERROR);
-            }
-            if (!said) {
                 success("Value of key '" + key + "' has been assigned the value '" + fval + "' (of type '" + otype + "') for item(s) '" + identifier + "'.");
-                said = true;
-            }; // basically only say once for [ALL]
-            if (identifier != "[ALL]") {
+                // basically only say once for [ALL]
+                if (identifier != "[ALL]") {
+                    out = true;
+                }
+            }
+            if (out) {
                 break;
             }
         }
@@ -511,12 +548,15 @@ void value(parameter& parent, const std::string new_value) {
 void pop(parameter& parent, const std::string _) {
     // get stuffs
     std::string path = getOut(parent);
-    std::string key = getKey(parent);
     std::string identifier = getItem(parent);
 
+    std::vector<std::string> keys = getKeys(parent);
+
     // this causes... a lot of issues
-    if (key == "identifier") { 
-        fatal(parent.prettify() + CANNOT_POP_KEY_IDENTIFIER_ERROR);
+    for (auto& key : keys) {
+        if (key == "identifier") { 
+            fatal(parent.prettify() + CANNOT_POP_KEY_IDENTIFIER_ERROR);
+        }
     }
 
     // read json
@@ -526,48 +566,35 @@ void pop(parameter& parent, const std::string _) {
     nm::json jfinal;
     bool changed;
     for (auto& j : jf) {
+        auto clone = j;
         if (j["identifier"] == identifier || identifier == "[ALL]") {
-            nm::json cp;
-            for (auto& i : j.items()) {
-                if (i.key() != key) {
-                    cp[i.key()] = i.value();
-                } else {
-                    changed = true;
+            for (auto& k : keys) {
+                for (auto& i : j.items()) {
+                    if (i.key() == k) {
+                        changed = true;
+                        clone.erase(k);
+                    }
+                }
+                if (!changed) {
+                    fatal(parent.prettify() + KEY_NOT_PRESENT_ERROR);
                 }
             }
-            jfinal.push_back(cp);
-        } else {
-            jfinal.push_back(j);
         }
+        jfinal.push_back(clone);
     }
 
-    // if nothing changed
-    if (!changed) {
-        fatal(parent.prettify() + KEY_NOT_PRESENT_ERROR);
+    // success messages
+    for (auto& key : keys) {
+        success("Key '" + key + "' removed from item(s) '" + identifier + "'.");
     }
 
     // write json
     write(parent, path, jfinal);
-
-    // success
-    success("Key '" + key + "' removed from item(s) '" + identifier + "'.");
 }
 
 void type(parameter& parent, const std::string object_type) {
     // might as well get it over with
-    if (object_type == "string" || object_type == ABSENT) {
-        parent.result = "string";
-    } else if (object_type == "int" || object_type == "integer") {
-        parent.result = "int/integer";
-    } else if (object_type == "float" || object_type == "decimal") {
-        parent.result = "float/decimal";
-    } else if (object_type == "boolean" || object_type == "bool") {
-        parent.result = "boolean/bool";
-    } else if (object_type == "null") {
-        parent.result = "null";
-    } else {
-        fatal(parent.prettify() + INVALID_TYPE_ERROR);
-    }
+    parent.result = object_type;
 }
 
 void readable(parameter& parent, const std::string _identifier) {
@@ -794,7 +821,12 @@ void decrypt(parameter& parent, const std::string phrase) {
 
 void colourless(parameter& parent, const std::string _) {
     warning("Disabled colours.");
-    parent.result = "passed";
+    parent.result = "colourless";
+}
+
+void force(parameter& parent, const std::string _) {
+    warning("In force mode.");
+    parent.result = "colourless";
 }
 
 /*/////////*
@@ -809,6 +841,10 @@ int main(int argc, char ** argv) {
         (parameter({"V", "verbose"},
         "Enables warning errors.",
         "", verbose, false, false)),
+
+        (parameter({"F", "force"},
+        "Forces the program to run despite fatal errors. Use with caution.",
+        "", force, false, false)),
 
         (parameter({"c", "colourless"},
         "Disables colours.",
@@ -851,11 +887,11 @@ int main(int argc, char ** argv) {
         "", readable, false, true)),
 
         (parameter({"t", "type"},
-        "Specifies the type of contents that v/value holds. Can be 'string', 'int'/'integer', 'float'/'decimal' or 'null'.",
+        "Specifies the types of each of the values provided. Can be 'string', 'int'/'integer', 'float'/'decimal' or 'null'. Seperated by commas.",
         "type-name", type, true, false)),
 
         (parameter({"k", "key"},
-        "Specifies the key to be modified on the item.",
+        "Specifies the keys to be modified on the item. Seperated by commas.",
         "key", key, true, false)),
 
         (parameter({"p", "pop"},
@@ -863,7 +899,7 @@ int main(int argc, char ** argv) {
         "", pop, false, false)),
 
         (parameter({"v", "value"},
-        "The value to be assigned to the k/key.",
+        "The values to be assigned to each given key. Seperated by commas.",
         "new-value", value, true, false)),
 
     };

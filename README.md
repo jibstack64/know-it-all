@@ -11,11 +11,8 @@
 
 ### Illustration
 
-`[]` means non-blocking.
+`[]` means non-blocking. `{}` means the parameter blocks all parameters after it, as presented below.
 
-`{}` means the parameter blocks all parameters after it, as presented below.
-
-`kial [V/verbose] [c/colourless] {?/help} [o/outfile] [d/decrypt] {e/encrypt} {s/search} [@/item] [+/add] {!/erase} {r/readable} [t/type] [k/key] [p/pop] [v/value]`
 > #### **NOTE**
 > For instance, the `+/add` parameter overwrites the `o/outfile` parameter's value as it is after it. This goes for `d/decrypt` too - if you decrypt a file, the decrypted filepath (`./decrypted.json`) will overwrite the provided `o/outfile`.
 >
@@ -25,9 +22,9 @@
 - `-o/outfile <path>` - Specifies the target database JSON file. If none is provided, a `./database.json` will be assumed.
 - `-+/add <name/identifier>` - Adds an item to the database by its name/identifier.
 - `-!/erase` - Removes the `@/item` from the database.
-- `-k/key <key>` - Specifies the key to be modified on the `@/item`.
-- `-v/value <new-value>` - The value to be assigned to the `k/key`.
-- `-t/type <type-name>` - Specifies the type of contents that `v/value` holds. Can be `string`, `int` or `integer`, `float` or `decimal`, `bool` or `boolean` or `null`.
+- `-k/key <key>` - Specifies the keys to be modified on the `@/item`.
+- `-v/value <new-value>` - The values to be assigned to the `k/key`.
+- `-t/type <type-name>` - Specifies the types of the contents that `v/value`s hold. Can be `string`, `int` or `integer`, `float` or `decimal`, `bool` or `boolean` or `null`.
 - `-@/item <name/identifier>` - Specifies the item to be used with the `!/erase`, `k/key` and `r/readable` parameters. If `[ALL]` is provided, then **all** items in the database will be selected.
 - `-p/pop` - Pops `key`, removing it from the `@/item`.
   
@@ -47,6 +44,7 @@
 - `-r/readable` - If an `@/item` is specified, the contents of that specific item will be beautified and fed to the console; if not, all items will be displayed in a neat, readable style.
 - `-V/verbose` - If passed, warning errors will be shown. Use this if you are unsure to the issue at hand.
 - `-c/colourless` - Disables colours. This is useful for older terminals, particularly on Windows.
+- `-F/force` - Forces the program to run despite fatal errors. Use with caution.
   
 ### Builds
 Releases currently ship with **Windows 7+** and **Linux** builds. You may build it yourself, add preprocessor fields for OS-compatibility, and create a PR, if you so wish.
@@ -60,7 +58,7 @@ Releases currently ship with **Windows 7+** and **Linux** builds. You may build 
 - [x] Encryption and decryption.
 - [x] Clean up codebase 1/2.
 - [x] Clean up codebase 2/2.
-- [ ] Multi-key, value and type appending (e.g. `-k mykey1,mykey2 -t int,string -v 5,hi`).
+- [x] Multi-key, value and type appending (e.g. `-k mykey1,mykey2 -t int,string -v 5,hi`).
 - [ ] ~~Catalog search (search the web for suitable matches to an item based on its data).~~ Scrapped - not needed.
 - [ ] Write/read from URL/cloud-file (e.g. `-o https://.../db.json`)
 - [ ] Write/read from SSH (scp).
