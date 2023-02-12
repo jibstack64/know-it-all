@@ -888,11 +888,11 @@ int main(int argc, char ** argv) {
 
         (parameter({"t", "type"},
         "Specifies the types of each of the values provided. Can be 'string', 'int'/'integer', 'float'/'decimal' or 'null'. Seperated by commas.",
-        "type-name", type, true, false)),
+        "type,type,...", type, true, false)),
 
         (parameter({"k", "key"},
         "Specifies the keys to be modified on the item. Seperated by commas.",
-        "key", key, true, false)),
+        "key,key,...", key, true, false)),
 
         (parameter({"p", "pop"},
         "Pops key, removing it from the item specified.",
@@ -900,7 +900,7 @@ int main(int argc, char ** argv) {
 
         (parameter({"v", "value"},
         "The values to be assigned to each given key. Seperated by commas.",
-        "new-value", value, true, false)),
+        "value,value,...", value, true, false)),
 
     };
 
