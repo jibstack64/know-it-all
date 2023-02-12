@@ -4,14 +4,18 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jibstack64/know-it-all)
 ![GitHub all releases](https://img.shields.io/github/downloads/jibstack64/know-it-all/total)
 
+### Also known as `KIAL`.
+
 *A command-line utility for indexing, modifying and managing a database of many items.*
-> <img src="https://pyxis.nymag.com/v1/imgs/a33/a1b/ff252c077aab7eaa9980c702142ae3abff-wojak-00.2x.w710.jpg" alt="Big brain wojak" width="250"/>
+> ![KIAL gif :)](https://user-images.githubusercontent.com/107510599/217619928-0c84dd11-7104-4b93-8958-cf576ed167b7.gif) 
 
 ## Parameters
 
 ### Illustration
 
 `[]` means non-blocking. `{}` means the parameter blocks all parameters after it, as presented below.
+
+![image](https://user-images.githubusercontent.com/107510599/217616054-fa123dc6-4314-4300-ba72-67064663b4b7.png)
 
 > #### **NOTE**
 > For instance, the `+/add` parameter overwrites the `o/outfile` parameter's value as it is after it. This goes for `d/decrypt` too - if you decrypt a file, the decrypted filepath (`./decrypted.json`) will overwrite the provided `o/outfile`.
