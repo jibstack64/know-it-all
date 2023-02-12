@@ -619,18 +619,23 @@ void readable(parameter& parent, const std::string _identifier) {
     nm::json jf = read(parent, path);
     for (const auto& j : jf) {
         if (j["identifier"] == identifier || identifier == "[ALL]") {
-            out += paint("> ", "grey") + paint(j["identifier"].get<std::string>(), {"yellow", "bold"}) + "\n";
+            out += paint("╔═: ", "grey") + paint(j["identifier"].get<std::string>(), {"yellow", "bold"}) + "\n";
             int i = 0; // tracker
             for (auto& kav : j.items()) {
                 i++;
                 if (kav.key() == "identifier") {
                     continue;
                 }
+                if (i == j.size()) {
+                    out += paint("╚ ", "grey");
+                } else {
+                    out += paint("╠ ", "grey");
+                }
                 out += paint(kav.key(), {"turqoise", "italic"}) + " : ";
                 out += paint(kav.value(), "yellow") + "\n";
             }
             if (i < 2) {
-                out += paint("N/A", "grey") + "\n";
+                out += paint("╚ ", "grey") + paint("N/A", "lightred") + "\n";
             }
         }
     }
@@ -652,10 +657,12 @@ void search(parameter& parent, const std::string term) {
 
     // iterate
     std::string out = "";
+    int i = 0;
     for (const auto& j : jf) {
+        i += 1;
         // loop through items
         bool saidIdentifier = false;
-        std::string idstr = paint("> ", "grey") + highlight(j["identifier"], term, {"yellow", "bold"}) + "\n";
+        std::string idstr = paint("⮩ ", "grey") + highlight(j["identifier"], term, {"yellow", "bold"}) + "\n";
         // add identifier beforehand if contains term
         if (std::string(j["identifier"]).find(term) != std::string::npos) {
             out += idstr;
@@ -680,6 +687,7 @@ void search(parameter& parent, const std::string term) {
                         out += idstr;
                         saidIdentifier = true;
                     }
+                    out += paint(" ⬥ ", "grey");
                     // feed to out
                     out += highlight(it.key(), term, {"turqoise", "italic"}) + " : ";
                     std::string qt = paint("\"", "yellow");
