@@ -184,7 +184,7 @@ int fatal(T sad, int status = 1) {
 // middlepoint of fatal and success.
 template<typename T>
 float warning(T headscratch, float status = 0.5) {
-    if (getParameter("F")->passed == "verbose") {
+    if (getParameter("V")->passed == "verbose") {
         std::cout << paint(headscratch, "yellow") << " [" << paint(status, {"yellow", "dim"}) << "]" << std::endl;
     }
     return status;
@@ -529,7 +529,7 @@ void value(parameter& parent, const std::string new_value) {
                     // impossible, but you never know
                     fatal(parent.prettify() + INVALID_TYPE_ERROR);
                 }
-                success("Value of key '" + key + "' has been assigned the value '" + fval + "' (of type '" + otype + "') for item(s) '" + identifier + "'.");
+                success("Value of key '" + key + "' has been assigned the value '" + fval + "' (of type '" + otype + "') for item '" + std::string(j["identifier"]) + "'.");
                 // basically only say once for [ALL]
                 if (identifier != "[ALL]") {
                     out = true;
@@ -564,28 +564,31 @@ void pop(parameter& parent, const std::string _) {
     
     // pop value
     nm::json jfinal;
-    bool changed;
+    bool overall = false;
     for (auto& j : jf) {
         auto clone = j;
         if (j["identifier"] == identifier || identifier == "[ALL]") {
             for (auto& k : keys) {
+                bool changed = false;
                 for (auto& i : j.items()) {
                     if (i.key() == k) {
                         changed = true;
+                        overall = true;
                         clone.erase(k);
                     }
                 }
                 if (!changed) {
-                    fatal(parent.prettify() + KEY_NOT_PRESENT_ERROR);
+                    warning("Key '" + k + "' not present in '" + std::string(j["identifier"]) + "'.");
+                } else {
+                    success("Key '" + k + "' removed from item '" + std::string(j["identifier"]) + "'.");
                 }
             }
         }
         jfinal.push_back(clone);
     }
 
-    // success messages
-    for (auto& key : keys) {
-        success("Key '" + key + "' removed from item(s) '" + identifier + "'.");
+    if (!overall) {
+        fatal("Nothing changed.");
     }
 
     // write json
