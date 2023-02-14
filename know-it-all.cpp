@@ -831,8 +831,8 @@ void decrypt(parameter& parent, const std::string phrase) {
 }
 
 void colourless(parameter& parent, const std::string _) {
-    warning("Disabled colours.");
     parent.result = "colourless";
+    warning("Disabled colours.");
 }
 
 void force(parameter& parent, const std::string _) {
