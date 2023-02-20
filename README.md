@@ -34,6 +34,7 @@
   
 ### Catalog and iteration
 - `-s/search <term>` - Iterates through all items in the database; if an item's name/identifier or inner value(s) contain `term`, its name/identifier and the value(s) in which `term` was found in are written to the console in a similar style to `r/readable`.
+- `-C/count` - Returns the number of elements in the database.
   
 ### Encryption and decryption
 > #### **NOTE**
