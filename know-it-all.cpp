@@ -421,25 +421,18 @@ void erase(parameter& parent, const std::string _) {
         fatal(parent.prettify() + NO_ITEMS_TO_REMOVE_ERROR);
     }
 
+    auto n = nlohmann::json::array({});
     // iterate until found
-    if (identifier != "[ALL]") {
-        int p;
-        for (int i = 0; i < jf.size(); i++) {
-            if (jf[i]["identifier"] == identifier) {
-                p = i;
-                break;
-            }
+    for (int i = 0; i < jf.size(); i++) {
+        if (jf[i]["identifier"] == identifier || identifier == "[ALL]") {
+            success("Removed item '" + std::string(jf[i]["identifier"]) + "' from the database.");
+        } else {
+            n.push_back(jf[i]);
         }
-        jf.erase(p); // remove
-    } else {
-        jf.clear();
     }
 
-    // success message
-    success("Removed item(s) '" + identifier + "'.");
-
     // write new json
-    write(parent, path, jf);    
+    write(parent, path, n);    
 }
 
 void item(parameter& parent, const std::string identifier) {
@@ -840,6 +833,12 @@ void force(parameter& parent, const std::string _) {
     parent.result = "colourless";
 }
 
+void count(parameter& parent, const std::string _) {
+    std::string path = getOut(parent);
+    nm::json jf = read(parent, path);
+    std::cout << paint("There are ", "green") << paint(std::to_string(jf.size()), (jf.size() > 0 ? "magenta" : "lightred")) << paint(" items in the database.", "green") << std::endl;
+}
+
 /*/////////*
 //  MAIN  //
 */////////*/
@@ -860,6 +859,10 @@ int main(int argc, char ** argv) {
         (parameter({"c", "colourless"},
         "Disables colours.",
         "", colourless, false, false)),
+
+        (parameter({"C", "count"},
+        "Returns the number of elements in the database.",
+        "", count, false, true)),
 
         (parameter({"?", "help"},
         "Provides help for all/a parameter(s).",
