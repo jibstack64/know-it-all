@@ -55,9 +55,8 @@
 Releases currently ship with **Windows 7+** and **Linux** builds. You may build it yourself, add preprocessor fields for OS-compatibility, and create a PR, if you so wish.
 
 #### Examples:
-<img src="https://cdn.discordapp.com/attachments/870419973607129139/1046425653328740413/image.png" alt="Example 1" width="525"/>
-<img src="https://cdn.discordapp.com/attachments/870419973607129139/1046431951705362513/image.png" alt="Example 2" width="240"/>
-<img src="https://cdn.discordapp.com/attachments/870419973607129139/1046437175547412530/image.png" alt="Example 3" width=250>
+<img src="https://cdn.discordapp.com/attachments/870419973607129139/1046431951705362513/image.png" alt="Example 1" width="240"/>
+<img src="https://cdn.discordapp.com/attachments/870419973607129139/1046437175547412530/image.png" alt="Example 2" width=250>
 
 ### Features to-come
 - [x] Encryption and decryption.
